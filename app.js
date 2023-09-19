@@ -26,9 +26,10 @@ app.get('/', (req, res) => {
 
 // Montar los enrutadores
 app.use('/list/edit', listEditRouter);
-app.use('/list/view', listViewRouter); // Aquí es donde se monta el enrutador correcto
+app.use('/list/view', listViewRouter);
 
 const port = 4000;
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
+

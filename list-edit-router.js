@@ -7,6 +7,8 @@ function handleInvalidRequest(req, res, next) {
     return res.status(400).json({ error: 'El cuerpo de la solicitud está vacío.' });
   }
 
+  // Agrega aquí la lógica para validar los datos de la solicitud (atributos faltantes, datos no válidos)
+
   next();
 }
 
@@ -25,9 +27,9 @@ router.delete('/eliminar/:id', (req, res) => {
 
 // Ruta para actualizar una tarea (PUT)
 router.put('/actualizar/:id', handleInvalidRequest, (req, res) => {
-  const taskId = req.params.id;
-  // Lógica para actualizar una tarea por su ID
-  res.send(`Tarea con ID ${taskId} actualizada`);
+  // Agrega aquí la lógica para actualizar una tarea por su ID
+  res.send('Tarea actualizada exitosamente');
 });
 
 module.exports = router;
+
