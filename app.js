@@ -1,35 +1,66 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
+const dotenv = require('dotenv');
 const app = express();
-const bodyParser = require('body-parser');
-const listEditRouter = require('./list-edit-router');
-const listViewRouter = require('./list-view-router');
+dotenv.config(); 
 
-app.use(bodyParser.json());
+app.use(express.json());
 
-// Middleware para gestionar solicitudes por métodos HTTP válidos
-function handleValidMethods(req, res, next) {
-  const validMethods = ['GET', 'POST', 'PUT', 'DELETE'];
+// Usuarios predefinidos (esto puede reemplazarse por una base de datos)
+const users = [
+  { id: 1, username: 'usuario1', password: 'contraseña1' },
+  { id: 2, username: 'usuario2', password: 'contraseña2' },
+  // Agrega más usuarios según sea necesario
+];
 
-  if (!validMethods.includes(req.method)) {
-    return res.status(405).json({ error: 'Método HTTP no permitido' });
+// Ruta de autenticación (login)
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+
+  // Verificar las credenciales del usuario
+  const user = users.find((user) => user.username === username && user.password === password);
+
+  if (!user) {
+    return res.status(401).json({ error: 'Credenciales inválidas' });
   }
 
-  next();
+  // Generar un token JWT
+  const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+  res.json({ token });
+});
+
+// Middleware para verificar el token JWT en las rutas protegidas
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Token de autorización no proporcionado' });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ error: 'Token inválido' });
+    }
+
+    req.user = user;
+    next();
+  });
 }
 
-app.use(handleValidMethods);
-
-// Ruta de inicio
-app.get('/', (req, res) => {
-  res.send('Bienvenido a la API de Tareas');
+app.get('/ruta-protegida', authenticateToken, (req, res) => {
+  res.json({ message: 'Esta es una ruta protegida', user: req.user });
 });
 
-// Montar los enrutadores
-app.use('/list/edit', listEditRouter);
-app.use('/list/view', listViewRouter);
+// Manejo de errores para rutas no encontradas
+app.use((req, res) => {
+  res.status(404).json({ error: 'Ruta no encontrada' });
+});
 
-const port = 4000;
+// Puerto de escucha
+const port = process.env.PORT || 4000;
 app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
-});
+  console.log(`Servidor escuchando en http://localhost:${port}`);
 
+});
