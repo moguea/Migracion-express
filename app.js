@@ -1,66 +1,68 @@
-const express = require('express');
-const jwt = require('jsonwebtoken');
-const dotenv = require('dotenv');
-const app = express();
-dotenv.config(); 
 
-app.use(express.json());
-
-// Usuarios predefinidos (esto puede reemplazarse por una base de datos)
-const users = [
-  { id: 1, username: 'usuario1', password: 'contraseña1' },
-  { id: 2, username: 'usuario2', password: 'contraseña2' },
-  // Agrega más usuarios según sea necesario
+const tasks = [
+  { id: 1, description: 'Hacer la compra', completed: false },
+  { id: 2, description: 'Lavar el coche', completed: true },
+  // Agrega más tareas según sea necesario
 ];
 
-// Ruta de autenticación (login)
-app.post('/login', (req, res) => {
-  const { username, password } = req.body;
+// Endpoint para listar todas las tareas
+app.get('/tasks', (req, res) => {
+  res.status(200).json(tasks);
+});
 
-  // Verificar las credenciales del usuario
-  const user = users.find((user) => user.username === username && user.password === password);
-
-  if (!user) {
-    return res.status(401).json({ error: 'Credenciales inválidas' });
+// Endpoint para crear una nueva tarea
+app.post('/tasks', (req, res) => {
+  const { description } = req.body;
+  if (!description) {
+    return res.status(400).json({ error: 'La descripción es requerida' });
   }
 
-  // Generar un token JWT
-  const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+  const newTask = {
+    id: tasks.length + 1,
+    description,
+    completed: false,
+  };
 
-  res.json({ token });
+  tasks.push(newTask);
+  res.status(201).json(newTask);
 });
 
-// Middleware para verificar el token JWT en las rutas protegidas
-function authenticateToken(req, res, next) {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+// Endpoint para obtener una sola tarea
+app.get('/tasks/:id', (req, res) => {
+  const taskId = parseInt(req.params.id);
+  const task = tasks.find((t) => t.id === taskId);
 
-  if (!token) {
-    return res.status(401).json({ error: 'Token de autorización no proporcionado' });
+  if (!task) {
+    return res.status(404).json({ error: 'Tarea no encontrada' });
   }
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) {
-      return res.status(403).json({ error: 'Token inválido' });
-    }
-
-    req.user = user;
-    next();
-  });
-}
-
-app.get('/ruta-protegida', authenticateToken, (req, res) => {
-  res.json({ message: 'Esta es una ruta protegida', user: req.user });
+  res.status(200).json(task);
 });
 
-// Manejo de errores para rutas no encontradas
-app.use((req, res) => {
-  res.status(404).json({ error: 'Ruta no encontrada' });
+// Endpoint para actualizar una tarea
+app.put('/tasks/:id', (req, res) => {
+  const taskId = parseInt(req.params.id);
+  const task = tasks.find((t) => t.id === taskId);
+
+  if (!task) {
+    return res.status(404).json({ error: 'Tarea no encontrada' });
+  }
+
+  task.completed = !task.completed;
+  res.status(200).json(task);
 });
 
-// Puerto de escucha
-const port = process.env.PORT || 4000;
-app.listen(port, () => {
-  console.log(`Servidor escuchando en http://localhost:${port}`);
+// Endpoint para eliminar una tarea
+app.delete('/tasks/:id', (req, res) => {
+  const taskId = parseInt(req.params.id);
+  const taskIndex = tasks.findIndex((t) => t.id === taskId);
 
+  if (taskIndex === -1) {
+    return res.status(404).json({ error: 'Tarea no encontrada' });
+  }
+
+  tasks.splice(taskIndex, 1);
+  res.status(204).send();
 });
+
+// ...
